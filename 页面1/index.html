@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>春意墨生 - AI书法创作系统</title>
+  <style>
+    /* === CSS Variables === */
+    :root {
+      --bg-primary: #f8f5ef;
+      --bg-secondary: #f0ebe1;
+      --bg-card: #fffcf7;
+      --bg-overlay: rgba(248, 245, 239, 0.85);
+      --text-primary: #2c2418;
+      --text-secondary: #6b5d4f;
+      --text-tertiary: #9c8e7d;
+      --accent-green: #5a7247;
+      --accent-green-light: #7a9b62;
+      --accent-pink: #c4887a;
+      --accent-pink-light: #e8b4a8;
+      --accent-gold: #b8954a;
+      --accent-ink: #1a1a1a;
+      --border: rgba(107, 93, 79, 0.12);
+      --border-strong: rgba(107, 93, 79, 0.25);
+      --shadow-sm: 0 1px 3px rgba(44, 36, 24, 0.06);
+      --shadow-md: 0 4px 16px rgba(44, 36, 24, 0.08);
+      --shadow-lg: 0 8px 32px rgba(44, 36, 24, 0.12);
+      --shadow-xl: 0 16px 48px rgba(44, 36, 24, 0.15);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 20px;
+      --radius-xl: 28px;
+      --font-serif: 'Noto Serif SC', 'Songti SC', 'SimSun', serif;
+      --font-sans: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      --transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      --paper: #faf6ee;
+      --paper-dark: #f0e8d8;
+      --ink-color: #1a1410;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { font-size: 16px; scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+
+    body {
+      font-family: var(--font-sans);
+      color: var(--text-primary);
+      background: var(--bg-primary);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* === Spring Canvas Background === */
+    #springCanvas {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 0; pointer-events: none;
+    }
+    #app { position: relative; z-index: 1; }
+
+    /* === Animations === */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* === Navigation === */
+    #mainHeader {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 0 32px; height: 64px; display: flex; align-items: center;
+      background: var(--bg-overlay); backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-container {
+      max-width: 1400px; width: 100%; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; }
+    .brand-icon { color: var(--accent-green); display: flex; }
+    .brand-text {
+      font-family: var(--font-serif); font-size: 1.2rem; font-weight: 600;
+      background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-green) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+
+    /* === 创作工作区 === */
+    .workspace-section { padding: 80px 0 60px; }
+    .workspace-container {
+      max-width: 1200px; margin: 0 auto; padding: 0 32px;
+      display: grid; grid-template-columns: 400px 1fr; gap: 32px; align-items: start;
+    }
+
+    /* === 控制面板 === */
+    .control-panel {
+      background: var(--bg-card); border-radius: var(--radius-lg);
+      padding: 24px; box-shadow: var(--shadow-md); border: 1px solid var(--border);
+    }
+
+    .panel-block {
+      margin-bottom: 24px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-block:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+
+    .panel-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+    }
+    .panel-title {
+      font-family: var(--font-serif); font-size: 1rem; font-weight: 600;
+      color: var(--text-primary); display: flex; align-items: center; gap: 8px;
+    }
+    .panel-title svg { color: var(--accent-green); }
+
+    /* === 输入区域 === */
+    .calligraphy-input {
+      width: 100%; padding: 14px 16px; border: 1.5px solid var(--border);
+      border-radius: var(--radius-md); font-size: 1.25rem; font-family: var(--font-serif);
+      background: var(--bg-secondary); color: var(--text-primary); resize: none;
+      transition: var(--transition); line-height: 1.8;
+    }
+    .calligraphy-input:focus {
+      outline: none; border-color: var(--accent-green);
+      box-shadow: 0 0 0 3px rgba(90, 114, 71, 0.12);
+    }
+    .input-meta {
+      display: flex; align-items: center; justify-content: space-between; padding-top: 8px;
+    }
+    .char-count { font-size: 0.85rem; color: var(--text-tertiary); }
+    .quick-texts { display: flex; gap: 8px; }
+    .quick-btn {
+      padding: 4px 12px; border: 1px solid var(--border); border-radius: 20px;
+      background: transparent; color: var(--text-secondary); font-size: 0.8rem;
+      cursor: pointer; transition: var(--transition);
+    }
+    .quick-btn:hover { border-color: var(--accent-green); color: var(--accent-green); }
+
+    /* === 布局切换 === */
+    .layout-toggle { display: flex; gap: 4px; background: var(--bg-secondary); padding: 3px; border-radius: 8px; }
+    .layout-btn {
+      width: 32px; height: 32px; border: none; border-radius: 6px;
+      background: transparent; color: var(--text-tertiary); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: var(--transition);
+    }
+    .layout-btn.active { background: var(--bg-card); color: var(--accent-green); box-shadow: var(--shadow-sm); }
+
+    /* === 参数滑块 === */
+    .param-grid { display: flex; flex-direction: column; gap: 14px; }
+    .param-item { width: 100%; }
+    .param-row {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;
+    }
+    .param-label { font-size: 0.82rem; color: var(--text-secondary); font-weight: 400; }
+    .param-val { font-size: 0.78rem; color: var(--text-tertiary); font-weight: 500; min-width: 32px; text-align: right; }
+
+    .param-slider {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 4px; background: var(--bg-secondary); border-radius: 2px;
+      outline: none; cursor: pointer;
+    }
+    .param-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 16px; height: 16px;
+      background: var(--bg-card); border: 2px solid var(--accent-green);
+      border-radius: 50%; cursor: pointer; transition: var(--transition);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+    .param-slider::-webkit-slider-thumb:hover { transform: scale(1.2); background: var(--accent-green); }
+    .param-slider::-moz-range-thumb {
+      width: 16px; height: 16px; background: var(--bg-card);
+      border: 2px solid var(--accent-green); border-radius: 50%; cursor: pointer;
+    }
+
+    /* === 纸幅比例 === */
+    .ratio-options { display: flex; gap: 6px; margin-top: 4px; }
+    .ratio-btn {
+      flex: 1; padding: 6px 0; border: 1px solid var(--border); border-radius: 6px;
+      background: none; font-size: 0.78rem; color: var(--text-secondary);
+      cursor: pointer; transition: var(--transition); font-family: var(--font-sans);
+    }
+    .ratio-btn.active {
+      background: rgba(90, 114, 71, 0.1); border-color: var(--accent-green);
+      color: var(--accent-green); font-weight: 500;
+    }
+
+    /* === 风格选择 === */
+    .style-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .style-btn {
+      padding: 14px 12px; border: 2px solid var(--border); border-radius: var(--radius-md);
+      background: var(--bg-card); cursor: pointer; transition: var(--transition); text-align: center;
+    }
+    .style-btn:hover { border-color: var(--accent-green-light); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+    .style-btn.active {
+      border-color: var(--accent-green);
+      background: linear-gradient(135deg, rgba(90, 114, 71, 0.08) 0%, rgba(90, 114, 71, 0.03) 100%);
+      box-shadow: 0 0 0 3px rgba(90, 114, 71, 0.1);
+    }
+    .style-name { display: block; font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 3px; }
+    .style-type { display: block; font-size: 0.78rem; color: var(--text-tertiary); }
+
+    /* === 生成按钮 === */
+    .btn-primary {
+      width: 100%; padding: 16px;
+      background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-green-light) 100%);
+      color: white; border: none; border-radius: var(--radius-md); font-size: 1.05rem;
+      font-weight: 600; cursor: pointer; transition: var(--transition);
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(90, 114, 71, 0.35); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.7; cursor: not-allowed; }
+    .btn-primary.loading .btn-text { display: none; }
+    .btn-primary .loading-text { display: none; }
+    .btn-primary.loading .loading-text { display: inline-flex; align-items: center; gap: 8px; }
+    .btn-text, .loading-text { display: inline-flex; align-items: center; gap: 8px; }
+    .spinner {
+      width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+
+    /* === 预览面板 === */
+    .preview-panel {
+      background: var(--bg-card); border-radius: var(--radius-lg); padding: 28px;
+      box-shadow: var(--shadow-md); border: 1px solid var(--border);
+    }
+    .preview-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+    }
+    .preview-title { font-family: var(--font-serif); font-size: 1.05rem; font-weight: 600; color: var(--text-primary); }
+    .preview-actions { display: flex; gap: 10px; }
+    .action-btn {
+      padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--bg-card); color: var(--text-secondary); font-size: 0.88rem;
+      cursor: pointer; transition: var(--transition); display: flex; align-items: center; gap: 6px;
+    }
+    .action-btn:hover { border-color: var(--accent-green); color: var(--accent-green); }
+
+    /* === 预览画布区 === */
+    .preview-canvas-area {
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px; background: var(--bg-secondary); border-radius: var(--radius-md);
+      position: relative; min-height: 480px;
+    }
+    .paper-container {
+      position: relative; width: 100%; max-width: 440px; aspect-ratio: 1;
+      background: var(--paper); border-radius: 4px;
+      box-shadow: var(--shadow-lg), inset 0 0 60px rgba(139, 119, 85, 0.06);
+      overflow: hidden;
+    }
+    #calligraphyCanvas {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
+    }
+    #resultImage {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      object-fit: contain; z-index: 2; display: none; background: var(--paper);
+    }
+    #resultImage.show { display: block; }
+    #calligraphyCanvas.hidden { display: none; }
+
+    .empty-hint {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      text-align: center; color: var(--text-tertiary); pointer-events: none; z-index: 0;
+    }
+    .empty-hint.hidden { display: none; }
+    .empty-icon { width: 56px; height: 56px; margin: 0 auto 12px; opacity: 0.5; }
+    .empty-text { font-size: 0.95rem; }
+
+    /* === 预览区按钮 === */
+    .preview-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .btn-secondary {
+      width: 100%;
+      padding: 14px;
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-secondary:hover {
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* === 提示信息 === */
+    .toast {
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px);
+      background: var(--text-primary); color: white; padding: 14px 28px; border-radius: 10px;
+      font-size: 0.92rem; opacity: 0; transition: all 0.3s ease; z-index: 9999;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    /* === 响应式 === */
+    @media (max-width: 900px) {
+      .workspace-container { grid-template-columns: 1fr; padding: 0 16px; }
+      .control-panel { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 春意背景画布 -->
+  <canvas id="springCanvas"></canvas>
+
+  <div id="app">
+    <!-- 顶部导航 -->
+    <header id="mainHeader">
+      <nav class="nav-container">
+        <div class="nav-brand">
+          <div class="brand-icon">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>
+              <path d="M12 28 Q14 18 20 12 Q26 18 28 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M16 22 Q20 16 24 22" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
+            </svg>
+          </div>
+          <span class="brand-text">春意墨生</span>
+        </div>
+      </nav>
+    </header>
+
+    <!-- 创作工作区 -->
+    <section class="workspace-section">
+      <div class="workspace-container">
+        <!-- 左侧控制面板 -->
+        <aside class="control-panel">
+
+          <!-- 文本输入 -->
+          <div class="panel-block">
+            <div class="panel-header">
+              <h2 class="panel-title">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                </svg>
+                输入文本
+              </h2>
+              <div class="layout-toggle">
+                <button class="layout-btn active" data-layout="vertical" title="竖排">
+                  <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="2" y="2" width="4" height="16" rx="1"/>
+                    <rect x="8" y="2" width="4" height="16" rx="1"/>
+                    <rect x="14" y="2" width="4" height="16" rx="1"/>
+                  </svg>
+                </button>
+                <button class="layout-btn" data-layout="horizontal" title="横排">
+                  <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="2" y="4" width="16" height="3" rx="1"/>
+                    <rect x="2" y="9" width="16" height="3" rx="1"/>
+                    <rect x="2" y="14" width="16" height="3" rx="1"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div>
+              <textarea id="textInput" class="calligraphy-input" placeholder="输入要创作的汉字..." rows="2">永</textarea>
+              <div class="input-meta">
+                <span class="char-count"><span id="charCount">1</span> 字</span>
+                <div class="quick-texts">
+                  <button class="quick-btn" data-text="春眠不觉晓">诗句</button>
+                  <button class="quick-btn" data-text="上善若水">经典</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 布局调整 -->
+          <div class="panel-block">
+            <div class="panel-header">
+              <h3 class="panel-title">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/>
+                  <path d="M3 9h18M9 21V9"/>
+                </svg>
+                布局调整
+              </h3>
+            </div>
+            <div class="param-grid">
+              <div class="param-item">
+                <div class="param-row">
+                  <label class="param-label">字间距</label>
+                  <span class="param-val" id="charSpacingVal">中</span>
+                </div>
+                <input type="range" id="charSpacing" class="param-slider" min="0" max="100" value="50">
+              </div>
+              <div class="param-item">
+                <div class="param-row">
+                  <label class="param-label">行间距</label>
+                  <span class="param-val" id="lineSpacingVal">中</span>
+                </div>
+                <input type="range" id="lineSpacing" class="param-slider" min="0" max="100" value="50">
+              </div>
+              <div class="param-item">
+                <div class="param-row">
+                  <label class="param-label">字号大小</label>
+                  <span class="param-val" id="fontSizeVal">64px</span>
+                </div>
+                <input type="range" id="fontSize" class="param-slider" min="30" max="120" value="64">
+              </div>
+              <div class="param-item">
+                <label class="param-label">纸幅比例</label>
+                <div class="ratio-options">
+                  <button class="ratio-btn" data-ratio="portrait">竖幅</button>
+                  <button class="ratio-btn active" data-ratio="square">方幅</button>
+                  <button class="ratio-btn" data-ratio="landscape">横幅</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 风格选择 -->
+          <div class="panel-block">
+            <div class="panel-header">
+              <h3 class="panel-title">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+                风格选择
+              </h3>
+            </div>
+            <div class="style-grid">
+              <button class="style-btn active" data-style="mifu">
+                <span class="style-name">米芾</span>
+                <span class="style-type">行书</span>
+              </button>
+              <button class="style-btn" data-style="zhaomengfu">
+                <span class="style-name">赵孟頫</span>
+                <span class="style-type">楷书</span>
+              </button>
+              <button class="style-btn" data-style="chusuining">
+                <span class="style-name">褚遂良</span>
+                <span class="style-type">楷书</span>
+              </button>
+              <button class="style-btn" data-style="yiu">
+                <span class="style-name">乙瑛碑</span>
+                <span class="style-type">隶书</span>
+              </button>
+              <button class="style-btn" data-style="dengshiru">
+                <span class="style-name">邓石如</span>
+                <span class="style-type">篆书</span>
+              </button>
+              <button class="style-btn" data-style="huaisu">
+                <span class="style-name">怀素</span>
+                <span class="style-type">草书</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 风格参数 -->
+          <div class="panel-block">
+            <div class="panel-header">
+              <h3 class="panel-title">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+                </svg>
+                风格参数
+              </h3>
+            </div>
+            <div class="param-grid">
+              <div class="param-item">
+                <div class="param-row">
+                  <label class="param-label">笔法粗细</label>
+                  <span class="param-val" id="brushWeightVal">中</span>
+                </div>
+                <input type="range" id="brushWeight" class="param-slider" min="0" max="100" value="50">
+              </div>
+              <div class="param-item">
+                <div class="param-row">
+                  <label class="param-label">墨色浓淡</label>
+                  <span class="param-val" id="inkDensityVal">中</span>
+                </div>
+                <input type="range" id="inkDensity" class="param-slider" min="0" max="100" value="50">
+              </div>
+              <div class="param-item">
+                <div class="param-row">
+                  <label class="param-label">结字疏密</label>
+                  <span class="param-val" id="charDensityVal">中</span>
+                </div>
+                <input type="range" id="charDensity" class="param-slider" min="0" max="100" value="50">
+              </div>
+              <div class="param-item">
+                <div class="param-row">
+                  <label class="param-label">飞白效果</label>
+                  <span class="param-val" id="flyingWhiteVal">无</span>
+                </div>
+                <input type="range" id="flyingWhite" class="param-slider" min="0" max="100" value="0">
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- 右侧预览区域 -->
+        <div class="preview-panel">
+          <div class="preview-header">
+            <h3 class="preview-title">实时预览</h3>
+          </div>
+
+          <div class="preview-canvas-area">
+            <div class="paper-container" id="paperContainer">
+              <canvas id="calligraphyCanvas"></canvas>
+              <img id="resultImage" src="demo.png" alt="书法生成结果" />
+            </div>
+            <div class="empty-hint" id="emptyHint">
+              <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <path d="M12 8v8M8 12h8"/>
+              </svg>
+              <p class="empty-text">点击「生成书法」开始创作</p>
+            </div>
+          </div>
+
+          <!-- 预览区按钮 -->
+          <div class="preview-buttons">
+            <button id="generateBtn" class="btn-primary btn-full">
+              <span class="btn-text">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M5 3l14 9-14 9V3z"/>
+                </svg>
+                生成书法
+              </span>
+              <span class="loading-text">
+                <span class="spinner"></span>
+                生成中...
+              </span>
+            </button>
+            <button class="btn-secondary btn-full" id="downloadBtn">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+              </svg>
+              下载作品
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 提示信息 -->
+  <div id="toast" class="toast"></div>
+
+  <script>
+    /* ============================================
+       春天树木萌芽展开动画
+       ============================================ */
+    (function() {
+      const canvas = document.getElementById('springCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let W, H, animStart = null;
+      const PHASES = { GROUND: 0, TRUNK: 1, BRANCHES: 2, BLOSSOMS: 3, PARTICLES: 4, STEADY: 5 };
+      let currentPhase = PHASES.GROUND;
+      const tree = { x: 0, y: 0, trunkHeight: 0, targetTrunkH: 0, branches: [], blossoms: [], leaves: [], grown: false };
+      let particles = [];
+      const COLORS = {
+        trunk: '#6b5344', trunkLight: '#8b7262', branch: '#7a6354',
+        blossom1: '#f2b5c1', blossom2: '#e8929e', blossom3: '#f7d4d9', blossom4: '#d4788c',
+        leaf1: '#7cb86a', leaf2: '#a3d48e', petal: '#f2b5c1', gold: '#d4a855',
+      };
+
+      function resize() {
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+        tree.x = W * 0.15;
+        tree.y = H * 0.88;
+        tree.targetTrunkH = Math.min(H * 0.42, 400);
+      }
+
+      function generateBranches() {
+        tree.branches = [];
+        const startX = tree.x, startY = tree.y - tree.trunkHeight;
+        function addBranch(x, y, angle, length, depth, maxDepth) {
+          if (depth > maxDepth || length < 8) return;
+          const endX = x + Math.cos(angle) * length, endY = y + Math.sin(angle) * length;
+          tree.branches.push({ x1: x, y1: y, x2: endX, y2: endY, depth, maxDepth, thickness: Math.max(1, (maxDepth - depth + 1) * 1.8), drawn: 0, hasBlossom: depth >= maxDepth - 1 && Math.random() > 0.3 });
+          const spread = 0.4 + Math.random() * 0.3, shrink = 0.6 + Math.random() * 0.15;
+          const numChildren = depth < 2 ? 3 : 2;
+          for (let i = 0; i < numChildren; i++) {
+            addBranch(endX, endY, angle + (i - (numChildren - 1) / 2) * spread + (Math.random() - 0.5) * 0.2, length * shrink, depth + 1, maxDepth);
+          }
+        }
+        for (let i = 0; i < 5; i++) addBranch(startX, startY, -Math.PI / 2 + (i - 2) * 0.55, tree.trunkHeight * (0.35 + Math.random() * 0.15), 0, 5);
+      }
+
+      function generateBlossoms() {
+        tree.blossoms = []; tree.leaves = [];
+        tree.branches.forEach(b => {
+          if (b.hasBlossom) {
+            const size = 4 + Math.random() * 6;
+            const colors = [COLORS.blossom1, COLORS.blossom2, COLORS.blossom3, COLORS.blossom4];
+            tree.blossoms.push({ x: b.x2, y: b.y2, size, color: colors[Math.floor(Math.random() * colors.length)], opacity: 0, targetOpacity: 0.6 + Math.random() * 0.4, rotation: Math.random() * Math.PI * 2 });
+            if (Math.random() > 0.5) tree.leaves.push({ x: b.x2 + (Math.random() - 0.5) * 10, y: b.y2 + (Math.random() - 0.5) * 10, size: 3 + Math.random() * 4, color: Math.random() > 0.5 ? COLORS.leaf1 : COLORS.leaf2, opacity: 0, rotation: Math.random() * Math.PI * 2 });
+          }
+        });
+      }
+
+      function spawnParticle() {
+        const colors = [COLORS.petal, COLORS.blossom1, COLORS.blossom3, COLORS.gold];
+        const sources = tree.blossoms.length > 0 ? tree.blossoms.map(b => ({ x: b.x, y: b.y })) : [{ x: tree.x, y: tree.y - tree.trunkHeight }];
+        const src = sources[Math.floor(Math.random() * sources.length)];
+        particles.push({ x: src.x + (Math.random() - 0.5) * 60, y: src.y + (Math.random() - 0.5) * 40, vx: 0.3 + Math.random() * 0.8, vy: 0.2 + Math.random() * 0.5, size: 2 + Math.random() * 3, color: colors[Math.floor(Math.random() * colors.length)], opacity: 0.5 + Math.random() * 0.5, rotation: Math.random() * Math.PI * 2, rotSpeed: (Math.random() - 0.5) * 0.04, life: 1, decay: 0.001 + Math.random() * 0.002, wobble: Math.random() * Math.PI * 2, wobbleSpeed: 0.02 + Math.random() * 0.02, wobbleAmp: 0.3 + Math.random() * 0.6 });
+      }
+
+      function drawGround(progress) {
+        const y = tree.y;
+        const grad = ctx.createLinearGradient(0, y - 10, 0, H);
+        grad.addColorStop(0, 'rgba(163, 212, 142, 0)'); grad.addColorStop(0.1, `rgba(163, 212, 142, ${0.15 * progress})`); grad.addColorStop(0.5, `rgba(122, 180, 98, ${0.08 * progress})`); grad.addColorStop(1, 'rgba(90, 155, 74, 0)');
+        ctx.fillStyle = grad; ctx.fillRect(0, y - 10, W, H - y + 10);
+        ctx.beginPath(); ctx.moveTo(0, y);
+        for (let x = 0; x <= W * progress; x += 5) ctx.lineTo(x, y + Math.sin(x * 0.01 + animStart * 0.001) * 3);
+        ctx.lineTo(W * progress, y + 20); ctx.lineTo(0, y + 20); ctx.closePath();
+        ctx.fillStyle = `rgba(163, 212, 142, ${0.12 * progress})`; ctx.fill();
+      }
+
+      function drawTrunk(progress) {
+        const h = tree.targetTrunkH * progress; tree.trunkHeight = h;
+        const baseW = 12 + (W > 1200 ? 8 : 4);
+        ctx.beginPath();
+        ctx.moveTo(tree.x - baseW / 2, tree.y);
+        ctx.bezierCurveTo(tree.x - baseW / 2 + 2, tree.y - h * 0.5, tree.x - baseW / 3, tree.y - h * 0.8, tree.x - 2, tree.y - h);
+        ctx.lineTo(tree.x + 2, tree.y - h);
+        ctx.bezierCurveTo(tree.x + baseW / 3, tree.y - h * 0.8, tree.x + baseW / 2 - 2, tree.y - h * 0.5, tree.x + baseW / 2, tree.y);
+        ctx.closePath();
+        const grad = ctx.createLinearGradient(tree.x - baseW / 2, tree.y, tree.x + baseW / 2, tree.y);
+        grad.addColorStop(0, COLORS.trunk); grad.addColorStop(0.3, COLORS.trunkLight); grad.addColorStop(0.7, COLORS.trunkLight); grad.addColorStop(1, COLORS.trunk);
+        ctx.fillStyle = grad; ctx.fill();
+      }
+
+      function drawBranches(progress) {
+        tree.branches.forEach(b => {
+          const delay = b.depth * 0.12, localProg = Math.max(0, Math.min(1, (progress - delay) / (1 - delay)));
+          b.drawn = localProg;
+          if (localProg <= 0) return;
+          ctx.beginPath(); ctx.moveTo(b.x1, b.y1); ctx.lineTo(b.x1 + (b.x2 - b.x1) * localProg, b.y1 + (b.y2 - b.y1) * localProg);
+          ctx.strokeStyle = COLORS.branch; ctx.lineWidth = b.thickness * (0.7 + 0.3 * localProg); ctx.lineCap = 'round'; ctx.globalAlpha = 0.6 + 0.4 * localProg; ctx.stroke(); ctx.globalAlpha = 1;
+        });
+      }
+
+      function drawBlossoms(progress) {
+        tree.blossoms.forEach((fl, i) => {
+          const delay = (i / tree.blossoms.length) * 0.6, p = Math.max(0, Math.min(1, (progress - delay) / (1 - delay)));
+          fl.opacity = fl.targetOpacity * p;
+          if (fl.opacity <= 0) return;
+          ctx.save(); ctx.translate(fl.x, fl.y); ctx.rotate(fl.rotation); ctx.globalAlpha = fl.opacity;
+          for (let j = 0; j < 5; j++) { ctx.save(); ctx.rotate((j / 5) * Math.PI * 2); ctx.beginPath(); ctx.ellipse(0, -fl.size * 0.5, fl.size * 0.35, fl.size * 0.55, 0, 0, Math.PI * 2); ctx.fillStyle = fl.color; ctx.fill(); ctx.restore(); }
+          ctx.beginPath(); ctx.arc(0, 0, fl.size * 0.18, 0, Math.PI * 2); ctx.fillStyle = COLORS.gold; ctx.fill();
+          ctx.globalAlpha = 1; ctx.restore();
+        });
+        tree.leaves.forEach((lf, i) => {
+          const delay = (i / tree.leaves.length) * 0.5 + 0.2, p = Math.max(0, Math.min(1, (progress - delay) / (1 - delay)));
+          lf.opacity = 0.7 * p;
+          if (lf.opacity <= 0) return;
+          ctx.save(); ctx.translate(lf.x, lf.y); ctx.rotate(lf.rotation); ctx.globalAlpha = lf.opacity;
+          ctx.beginPath(); ctx.ellipse(0, 0, lf.size * 0.4, lf.size, 0, 0, Math.PI * 2); ctx.fillStyle = lf.color; ctx.fill();
+          ctx.globalAlpha = 1; ctx.restore();
+        });
+      }
+
+      function drawParticles() { particles.forEach(p => { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rotation); ctx.globalAlpha = p.opacity * p.life; ctx.beginPath(); ctx.ellipse(0, 0, p.size * 0.4, p.size, 0, 0, Math.PI * 2); ctx.fillStyle = p.color; ctx.fill(); ctx.globalAlpha = 1; ctx.restore(); }); }
+      function updateParticles() {
+        if (currentPhase >= PHASES.PARTICLES && particles.length < 40 && Math.random() > 0.92) spawnParticle();
+        particles.forEach(p => { p.wobble += p.wobbleSpeed; p.x += p.vx + Math.sin(p.wobble) * p.wobbleAmp; p.y += p.vy; p.rotation += p.rotSpeed; p.life -= p.decay; });
+        particles = particles.filter(p => p.life > 0 && p.x < W + 50 && p.y < H + 50);
+      }
+
+      function animate(timestamp) {
+        if (!animStart) animStart = timestamp;
+        const elapsed = (timestamp - animStart) / 1000;
+        ctx.clearRect(0, 0, W, H);
+        let phaseProgress = 0;
+        if (elapsed < 1) { currentPhase = PHASES.GROUND; phaseProgress = elapsed / 1; }
+        else if (elapsed < 3) { currentPhase = PHASES.TRUNK; phaseProgress = (elapsed - 1) / 2; }
+        else if (elapsed < 5.5) { currentPhase = PHASES.BRANCHES; phaseProgress = (elapsed - 3) / 2.5; if (!tree.grown) { tree.grown = true; generateBranches(); } }
+        else if (elapsed < 7.5) { currentPhase = PHASES.BLOSSOMS; phaseProgress = (elapsed - 5.5) / 2; if (tree.blossoms.length === 0) generateBlossoms(); }
+        else { currentPhase = PHASES.STEADY; phaseProgress = 1; }
+        drawGround(Math.min(1, elapsed / 1.5));
+        if (elapsed >= 1) drawTrunk(Math.min(1, (elapsed - 1) / 2));
+        if (currentPhase >= PHASES.BRANCHES) drawBranches(Math.min(1, phaseProgress));
+        if (currentPhase >= PHASES.BLOSSOMS) drawBlossoms(Math.min(1, phaseProgress));
+        if (currentPhase >= PHASES.PARTICLES) { updateParticles(); drawParticles(); }
+        requestAnimationFrame(animate);
+      }
+
+      resize(); window.addEventListener('resize', () => { resize(); if (tree.grown) { generateBranches(); generateBlossoms(); } }); requestAnimationFrame(animate);
+    })();
+
+    /* ============================================
+       页面交互逻辑
+       ============================================ */
+    const state = {
+      currentStyle: 'mifu',
+      currentText: '永',
+      layout: 'vertical',
+      ratio: 'square',
+      charSpacing: 50,
+      lineSpacing: 50,
+      fontSize: 64,
+      brushWeight: 50,
+      inkDensity: 50,
+      charDensity: 50,
+      flyingWhite: 0
+    };
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message; toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // 滑块值转文字
+    function sliderToText(val, min, max) {
+      if (min === 0 && max === 100) {
+        if (val === 0) return '无';
+        if (val <= 25) return '小';
+        if (val <= 50) return '中';
+        if (val <= 75) return '大';
+        return '最大';
+      }
+      return val;
+    }
+
+    // 初始化画布
+    function initCanvas() {
+      const canvas = document.getElementById('calligraphyCanvas');
+      const ctx = canvas.getContext('2d');
+      const paper = canvas.parentElement;
+      function resize() { const rect = paper.getBoundingClientRect(); canvas.width = rect.width; canvas.height = rect.height; drawPlaceholder(); }
+      function drawPlaceholder() {
+        ctx.fillStyle = '#faf6ee'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ccc'; ctx.font = `${Math.min(canvas.width, canvas.height) * 0.4}px "STSong", "SimSun", serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(state.currentText || '永', canvas.width / 2, canvas.height / 2);
+      }
+      resize(); window.addEventListener('resize', resize);
+    }
+
+    // 布局切换
+    function bindLayoutButtons() {
+      document.querySelectorAll('.layout-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.layout-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.layout = btn.dataset.layout;
+        });
+      });
+    }
+
+    // 纸幅比例
+    function bindRatioButtons() {
+      document.querySelectorAll('.ratio-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.ratio = btn.dataset.ratio;
+          updatePaperRatio();
+        });
+      });
+    }
+
+    function updatePaperRatio() {
+      const paper = document.getElementById('paperContainer');
+      if (state.ratio === 'portrait') { paper.style.aspectRatio = '3/4'; }
+      else if (state.ratio === 'landscape') { paper.style.aspectRatio = '4/3'; }
+      else { paper.style.aspectRatio = '1'; }
+    }
+
+    // 文本输入
+    function bindTextInput() {
+      const input = document.getElementById('textInput');
+      const count = document.getElementById('charCount');
+      input.addEventListener('input', (e) => {
+        state.currentText = e.target.value; count.textContent = e.target.value.length || 0;
+      });
+    }
+
+    // 快速文本
+    function bindQuickButtons() {
+      document.querySelectorAll('.quick-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.getElementById('textInput').value = btn.dataset.text;
+          document.getElementById('charCount').textContent = btn.dataset.text.length;
+          state.currentText = btn.dataset.text;
+        });
+      });
+    }
+
+    // 风格选择
+    function bindStyleButtons() {
+      document.querySelectorAll('.style-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          state.currentStyle = btn.dataset.style;
+        });
+      });
+    }
+
+    // 参数滑块
+    function bindSliders() {
+      // 布局参数
+      bindSlider('charSpacing', (val) => { state.charSpacing = val; document.getElementById('charSpacingVal').textContent = sliderToText(val, 0, 100); });
+      bindSlider('lineSpacing', (val) => { state.lineSpacing = val; document.getElementById('lineSpacingVal').textContent = sliderToText(val, 0, 100); });
+      bindSlider('fontSize', (val) => { state.fontSize = val; document.getElementById('fontSizeVal').textContent = val + 'px'; });
+
+      // 风格参数
+      bindSlider('brushWeight', (val) => { state.brushWeight = val; document.getElementById('brushWeightVal').textContent = sliderToText(val, 0, 100); });
+      bindSlider('inkDensity', (val) => { state.inkDensity = val; document.getElementById('inkDensityVal').textContent = sliderToText(val, 0, 100); });
+      bindSlider('charDensity', (val) => { state.charDensity = val; document.getElementById('charDensityVal').textContent = sliderToText(val, 0, 100); });
+      bindSlider('flyingWhite', (val) => { state.flyingWhite = val; document.getElementById('flyingWhiteVal').textContent = sliderToText(val, 0, 100); });
+    }
+
+    function bindSlider(id, callback) {
+      const slider = document.getElementById(id);
+      if (slider) slider.addEventListener('input', (e) => callback(parseInt(e.target.value)));
+    }
+
+    // 生成按钮
+    function bindGenerateButton() {
+      const btn = document.getElementById('generateBtn');
+      const canvas = document.getElementById('calligraphyCanvas');
+      const resultImg = document.getElementById('resultImage');
+      const emptyHint = document.getElementById('emptyHint');
+
+      btn.addEventListener('click', () => {
+        btn.classList.add('loading'); btn.disabled = true;
+        setTimeout(() => {
+          canvas.classList.add('hidden'); emptyHint.classList.add('hidden'); resultImg.classList.add('show');
+          btn.classList.remove('loading'); btn.disabled = false;
+          showToast(`「${state.currentText}」书法生成完成`);
+        }, 1200);
+      });
+    }
+
+    // 下载按钮
+    function bindDownloadButton() {
+      const btn = document.getElementById('downloadBtn');
+      const resultImg = document.getElementById('resultImage');
+      btn.addEventListener('click', () => {
+        if (resultImg.classList.contains('show')) {
+          const link = document.createElement('a');
+          link.download = `书法作品_${state.currentText}_${Date.now()}.png`;
+          link.href = resultImg.src; link.click();
+        } else { showToast('请先生成书法作品'); }
+      });
+    }
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      initCanvas(); bindLayoutButtons(); bindRatioButtons();
+      bindTextInput(); bindQuickButtons(); bindStyleButtons();
+      bindSliders(); bindGenerateButton(); bindDownloadButton();
+    });
+  </script>
+</body>
+</html>

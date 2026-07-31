@@ -1,0 +1,61 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ===== Node =====
+node_modules/
+slides/node_modules/
+
+# ===== Model weights & checkpoints (large binaries, ~14GB) =====
+checkpoints/
+checkpoints_backup/
+
+# ===== Training data & font library (large binaries) =====
+书法字库/
+algorithm/data/**/*.jpg
+algorithm/data/**/*.png
+algorithm/data/.skeleton_cache*/
+algorithm/data/_backup_font_render/
+algorithm/data/calli_cache/
+algorithm/data/calli_tongji_cache/
+
+# ===== Logs & debug artifacts =====
+*.log
+debug_*.png
+debug_*.txt
+training_output*.log
+training_output*.txt
+*_log.txt
+*_output.log
+gen_*.png
+gen_*.log
+ind.png
+collect_zhao_output.log
+verify_fix_out.txt
+debug_vgg_out.txt
+gen_zhao_log.txt
+server_*.log
+
+# ===== IDE =====
+.idea/
+
+# ===== Packaging / submission (duplicates & bundles weights) =====
+submission/
+春意墨生AI书法系统_提交包*.zip
+
+# ===== Unpacked thesis (binary docx) =====
+unpacked-thesis/
+
+# ===== Agent / tooling internals =====
+.workbuddy/
+
+# ===== Slides build output =====
+slides/output/
+
+# ===== OS =====
+Thumbs.db
+ehthumbs.db
+Desktop.ini

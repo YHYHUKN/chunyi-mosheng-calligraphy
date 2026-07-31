@@ -1,0 +1,10 @@
+{
+  "name": "calligraphy-spring",
+  "version": "1.0.0",
+  "description": "春意墨生AI书法创作系统",
+  "main": "gen_doc.js",
+  "license": "MIT",
+  "dependencies": {
+    "docx": "^9.6.1"
+  }
+}

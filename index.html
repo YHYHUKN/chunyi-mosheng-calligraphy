@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>春意墨生 - AI书法创作系统</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@200;300;400;500;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <canvas id="springCanvas"></canvas>
+  <div id="app">
+    <!-- 顶部导航 -->
+    <header id="mainHeader">
+      <nav class="nav-container">
+        <div class="nav-brand">
+          <div class="brand-icon">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>
+              <path d="M12 28 Q14 18 20 12 Q26 18 28 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <path d="M16 22 Q20 16 24 22" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
+            </svg>
+          </div>
+          <span class="brand-text">春意墨生</span>
+        </div>
+        <div class="nav-links">
+          <a href="#" class="nav-link active" data-section="create">创作</a>
+          <a href="#" class="nav-link" data-section="gallery">作品集</a>
+          <a href="#" class="nav-link" data-section="learn">学习</a>
+        </div>
+        <div class="nav-actions">
+          <button class="btn-primary btn-sm">开始创作</button>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Hero -->
+    <section id="heroSection" class="hero-section">
+      <div class="hero-content">
+        <div class="hero-badge fade-up"><span class="badge-dot"></span>基于生成对抗网络与风格解耦技术</div>
+        <h1 class="hero-title fade-up" style="animation-delay:.1s">
+          <span class="title-line">以AI之力</span>
+          <span class="title-line title-accent">唤醒千年笔墨</span>
+        </h1>
+        <p class="hero-desc fade-up" style="animation-delay:.2s">融合深度学习与传统书法艺术，精准复刻米芾、赵孟頫、褚遂良等名家风格，<br>支持行书、楷书、隶书、篆书、草书五大书体，让每一位创作者都能挥洒自如。</p>
+        <div class="hero-actions fade-up" style="animation-delay:.3s">
+          <button class="btn-primary btn-lg" onclick="scrollToSection('workspace')"><span>开始创作</span><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10h12M12 6l4 4-4 4"/></svg></button>
+          <button class="btn-ghost btn-lg" onclick="scrollToSection('styleGallery')">浏览风格库</button>
+        </div>
+        <div class="hero-stats fade-up" style="animation-delay:.4s">
+          <div class="stat-item"><span class="stat-num">89%</span><span class="stat-label">专家认可度</span></div>
+          <div class="stat-divider"></div>
+          <div class="stat-item"><span class="stat-num">5</span><span class="stat-label">主流书体</span></div>
+          <div class="stat-divider"></div>
+          <div class="stat-item"><span class="stat-num">12+</span><span class="stat-label">经典书家</span></div>
+        </div>
+      </div>
+      <div class="hero-preview fade-up" style="animation-delay:.3s">
+        <div class="preview-scroll">
+          <div class="scroll-paper"><canvas id="heroCalligraphy" width="280" height="500"></canvas></div>
+          <div class="scroll-rod scroll-rod-top"></div>
+          <div class="scroll-rod scroll-rod-bottom"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 创作工作区 -->
+    <section id="workspace" class="workspace-section">
+      <div class="workspace-container">
+        <aside class="control-panel">
+          <!-- 文本输入 -->
+          <div class="panel-block">
+            <div class="panel-header">
+              <h3 class="panel-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>输入文本</h3>
+              <div class="layout-toggle">
+                <button class="layout-btn active" data-layout="vertical" title="竖排"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="4" height="16" rx="1"/><rect x="8" y="2" width="4" height="16" rx="1"/><rect x="14" y="2" width="4" height="16" rx="1"/></svg></button>
+                <button class="layout-btn" data-layout="horizontal" title="横排"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="4" width="16" height="3" rx="1"/><rect x="2" y="9" width="16" height="3" rx="1"/><rect x="2" y="14" width="16" height="3" rx="1"/></svg></button>
+              </div>
+            </div>
+            <div class="panel-body">
+              <textarea id="textInput" class="calligraphy-input" placeholder="在此输入要创作的书法文本..." rows="4">春眠不觉晓</textarea>
+              <div class="input-meta">
+                <span class="char-count"><span id="charCount">5</span> 字</span>
+                <div class="quick-texts">
+                  <button class="quick-btn" data-text="春风得意马蹄疾一日看尽长安花">诗句</button>
+                  <button class="quick-btn" data-text="上善若水水善利万物而不争">经典</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 布局参数 -->
+          <div class="panel-block">
+            <div class="panel-header">
+              <h3 class="panel-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>布局调整</h3>
+            </div>
+            <div class="panel-body">
+              <div class="param-grid">
+                <div class="param-item">
+                  <div class="param-row"><label class="param-label">字间距</label><span class="param-val" id="charSpacingVal">中</span></div>
+                  <input type="range" id="charSpacing" class="param-slider" min="0" max="100" value="50">
+                </div>
+                <div class="param-item">
+                  <div class="param-row"><label class="param-label">行间距</label><span class="param-val" id="lineSpacingVal">中</span></div>
+                  <input type="range" id="lineSpacing" class="param-slider" min="0" max="100" value="50">
+                </div>
+                <div class="param-item">
+                  <div class="param-row"><label class="param-label">字号大小</label><span class="param-val" id="fontSizeVal">64px</span></div>
+                  <input type="range" id="fontSize" class="param-slider" min="30" max="120" value="64">
+                </div>
+                <div class="param-item">
+                  <label class="param-label">纸幅比例</label>
+                  <div class="ratio-options">
+                    <button class="ratio-btn" data-ratio="portrait">竖幅</button>
+                    <button class="ratio-btn active" data-ratio="square">方幅</button>
+                    <button class="ratio-btn" data-ratio="landscape">横幅</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 风格选择 -->
+          <div class="panel-block">
+            <div class="panel-header">
+              <h3 class="panel-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>风格选择</h3>
+              <button class="btn-text" id="customStyleBtn">+ 自定义</button>
+            </div>
+            <div class="panel-body">
+              <div class="style-tabs">
+                <button class="style-tab active" data-category="masters">经典书家</button>
+                <button class="style-tab" data-category="scripts">五大书体</button>
+              </div>
+              <div class="style-cards" id="mastersGrid">
+                <div class="style-card active" data-style="mifu">
+                  <canvas class="card-preview" width="80" height="80"></canvas>
+                  <div class="card-info"><span class="card-name">米芾</span><span class="card-script">米芾行书</span></div>
+                  <div class="card-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+                </div>
+                <div class="style-card" data-style="zhaomf">
+                  <canvas class="card-preview" width="80" height="80"></canvas>
+                  <div class="card-info"><span class="card-name">赵孟頫</span><span class="card-script">赵体楷书</span></div>
+                  <div class="card-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+                </div>
+                <div class="style-card" data-style="chushl">
+                  <canvas class="card-preview" width="80" height="80"></canvas>
+                  <div class="card-info"><span class="card-name">褚遂良</span><span class="card-script">褚体楷书</span></div>
+                  <div class="card-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+                </div>
+                <div class="style-card" data-style="yybei">
+                  <canvas class="card-preview" width="80" height="80"></canvas>
+                  <div class="card-info"><span class="card-name">乙瑛碑</span><span class="card-script">汉隶</span></div>
+                  <div class="card-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+                </div>
+                <div class="style-card" data-style="dengsr">
+                  <canvas class="card-preview" width="80" height="80"></canvas>
+                  <div class="card-info"><span class="card-name">邓石如</span><span class="card-script">邓派篆书</span></div>
+                  <div class="card-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+                </div>
+                <div class="style-card" data-style="huaisu">
+                  <canvas class="card-preview" width="80" height="80"></canvas>
+                  <div class="card-info"><span class="card-name">怀素</span><span class="card-script">怀素草书</span></div>
+                  <div class="card-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+                </div>
+              </div>
+              <div class="style-cards hidden" id="scriptsGrid">
+                <div class="style-card" data-style="kaishu">
+                  <canvas class="card-preview" width="80" height="80"></canvas>
+                  <div class="card-info"><span class="card-name">楷书</span><span class="card-script">端庄方正</span></div>
+                  <div class="card-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+                </div>
+                <div class="style-card" data-style="xingshu">
+                  <canvas class="card-preview" width="80" height="80"></canvas>
+                  <div class="card-info"><span class="card-name">行书</span><span class="card-script">流畅自然</span></div>
+                  <div class="card-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+                </div>
+                <div class="style-card" data-style="caoshu">
+                  <canvas class="card-preview" width="80" height="80"></canvas>
+                  <div class="card-info"><span class="card-name">草书</span><span class="card-script">豪放飘逸</span></div>
+                  <div class="card-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+                </div>
+                <div class="style-card" data-style="lishu">
+                  <canvas class="card-preview" width="80" height="80"></canvas>
+                  <div class="card-info"><span class="card-name">隶书</span><span class="card-script">古朴厚重</span></div>
+                  <div class="card-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+                </div>
+                <div class="style-card" data-style="zhuanshu">
+                  <canvas class="card-preview" width="80" height="80"></canvas>
+                  <div class="card-info"><span class="card-name">篆书</span><span class="card-script">圆转匀称</span></div>
+                  <div class="card-check"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 风格参数调节 -->
+          <div class="panel-block">
+            <div class="panel-header">
+              <h3 class="panel-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707"/><circle cx="12" cy="12" r="4"/></svg>风格参数</h3>
+            </div>
+            <div class="panel-body">
+              <div class="param-grid">
+                <div class="param-item">
+                  <div class="param-row"><label class="param-label">笔法粗细</label><span class="param-val" id="brushWeightVal">中</span></div>
+                  <input type="range" id="brushWeight" class="param-slider" min="0" max="100" value="50">
+                </div>
+                <div class="param-item">
+                  <div class="param-row"><label class="param-label">墨色浓淡</label><span class="param-val" id="inkDensityVal">中</span></div>
+                  <input type="range" id="inkDensity" class="param-slider" min="0" max="100" value="50">
+                </div>
+                <div class="param-item">
+                  <div class="param-row"><label class="param-label">结字疏密</label><span class="param-val" id="charDensityVal">中</span></div>
+                  <input type="range" id="charDensity" class="param-slider" min="0" max="100" value="50">
+                </div>
+                <div class="param-item">
+                  <div class="param-row"><label class="param-label">飞白效果</label><span class="param-val" id="flyingWhiteVal">无</span></div>
+                  <input type="range" id="flyingWhite" class="param-slider" min="0" max="100" value="0">
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- 右侧预览区 -->
+        <main class="preview-panel">
+          <div class="preview-toolbar">
+            <div class="toolbar-left">
+              <span class="toolbar-title">实时预览</span>
+              <span class="toolbar-subtitle" id="currentStyle">米芾 · 米芾行书</span>
+            </div>
+            <div class="toolbar-right">
+              <button class="btn-toolbar" id="zoomInBtn" title="放大"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35M11 8v6M8 11h6"/></svg></button>
+              <button class="btn-toolbar" id="zoomOutBtn" title="缩小"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35M8 11h6"/></svg></button>
+              <button class="btn-toolbar" id="gridToggle" title="格线"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg></button>
+            </div>
+          </div>
+          <div class="preview-canvas-area" id="previewArea">
+            <div class="paper-container" id="paperContainer">
+              <canvas id="calligraphyCanvas" width="800" height="800"></canvas>
+              <img id="demoResultImg" src="file:///d:/书法春/assets/images/demo_result.png"
+                   alt="书法生成结果" />
+            </div>
+          </div>
+          <div class="preview-actions">
+            <button class="btn-primary btn-xl" id="generateBtn">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v3m6.36.64l-2.12 2.12M21 12h-3m-.64 6.36l-2.12-2.12M12 21v-3m-4.24.64l2.12-2.12M3 12h3m.64-6.36l2.12 2.12"/></svg>
+              <span>生成书法</span>
+            </button>
+            <button class="btn-outline btn-xl" id="downloadBtn">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              <span>下载作品</span>
+            </button>
+          </div>
+        </main>
+      </div>
+    </section>
+
+    <!-- 风格库展示 -->
+    <section id="styleGallery" class="gallery-section">
+      <div class="section-header">
+        <h2 class="section-title">经典风格库</h2>
+        <p class="section-desc">精选历代名家碑帖，一键复刻经典笔法</p>
+      </div>
+      <div class="gallery-grid">
+        <div class="gallery-card gallery-card-lg">
+          <canvas class="gallery-preview" width="300" height="400"></canvas>
+          <div class="gallery-overlay">
+            <span class="gallery-calligrapher">米芾</span>
+            <span class="gallery-work">蜀素帖</span>
+            <span class="gallery-tag">行书 · 宋代</span>
+          </div>
+        </div>
+        <div class="gallery-card">
+          <canvas class="gallery-preview" width="300" height="400"></canvas>
+          <div class="gallery-overlay">
+            <span class="gallery-calligrapher">褚遂良</span>
+            <span class="gallery-work">雁塔圣教序</span>
+            <span class="gallery-tag">楷书 · 唐代</span>
+          </div>
+        </div>
+        <div class="gallery-card">
+          <canvas class="gallery-preview" width="300" height="400"></canvas>
+          <div class="gallery-overlay">
+            <span class="gallery-calligrapher">乙瑛碑</span>
+            <span class="gallery-work">乙瑛碑</span>
+            <span class="gallery-tag">隶书 · 汉代</span>
+          </div>
+        </div>
+        <div class="gallery-card">
+          <canvas class="gallery-preview" width="300" height="400"></canvas>
+          <div class="gallery-overlay">
+            <span class="gallery-calligrapher">邓石如</span>
+            <span class="gallery-work">篆书千字文</span>
+            <span class="gallery-tag">篆书 · 清代</span>
+          </div>
+        </div>
+        <div class="gallery-card">
+          <canvas class="gallery-preview" width="300" height="400"></canvas>
+          <div class="gallery-overlay">
+            <span class="gallery-calligrapher">怀素</span>
+            <span class="gallery-work">自叙帖</span>
+            <span class="gallery-tag">草书 · 唐代</span>
+          </div>
+        </div>
+        <div class="gallery-card gallery-card-lg">
+          <canvas class="gallery-preview" width="300" height="400"></canvas>
+          <div class="gallery-overlay">
+            <span class="gallery-calligrapher">赵孟頫</span>
+            <span class="gallery-work">胆巴碑</span>
+            <span class="gallery-tag">楷书 · 元代</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 系统架构展示 -->
+    <section id="architecture" class="arch-section">
+      <div class="section-header">
+        <h2 class="section-title">技术架构</h2>
+        <p class="section-desc">双分支生成器 + 风格解耦 + 多维损失函数</p>
+      </div>
+      <div class="arch-flow">
+        <div class="arch-node">
+          <div class="arch-icon"><svg viewBox="0 0 48 48" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="36" height="36" rx="4"/><path d="M16 20h16M16 24h10M16 28h14"/></svg></div>
+          <span class="arch-label">文本输入</span>
+          <span class="arch-sub">多行连续录入</span>
+        </div>
+        <div class="arch-arrow"><svg viewBox="0 0 60 20" width="60" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M0 10h52M46 4l8 6-8 6"/></svg></div>
+        <div class="arch-node">
+          <div class="arch-icon"><svg viewBox="0 0 48 48" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2"><circle cx="16" cy="24" r="10"/><circle cx="32" cy="24" r="10"/><path d="M22 20h8"/></svg></div>
+          <span class="arch-label">风格编码</span>
+          <span class="arch-sub">连续隐空间映射</span>
+        </div>
+        <div class="arch-arrow"><svg viewBox="0 0 60 20" width="60" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M0 10h52M46 4l8 6-8 6"/></svg></div>
+        <div class="arch-node arch-node-highlight">
+          <div class="arch-icon"><svg viewBox="0 0 48 48" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="14" width="16" height="20" rx="2"/><rect x="28" y="14" width="16" height="20" rx="2"/><path d="M20 24h8"/></svg></div>
+          <span class="arch-label">双分支生成</span>
+          <span class="arch-sub">内容×风格融合</span>
+        </div>
+        <div class="arch-arrow"><svg viewBox="0 0 60 20" width="60" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M0 10h52M46 4l8 6-8 6"/></svg></div>
+        <div class="arch-node">
+          <div class="arch-icon"><svg viewBox="0 0 48 48" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="32" height="32" rx="4"/><path d="M16 20c0-4 4-6 8-6s8 2 8 6-4 6-8 6-8 2-8 6 4 6 8 6 8-2 8-6"/></svg></div>
+          <span class="arch-label">书法输出</span>
+          <span class="arch-sub">高清作品生成</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 底部 -->
+    <footer class="site-footer">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <span class="brand-text">春意墨生</span>
+          <span class="footer-tagline">AI + 传统书法 = 无限可能</span>
+        </div>
+        <div class="footer-links">
+          <a href="#">关于系统</a>
+          <a href="#">技术文档</a>
+          <a href="#">使用指南</a>
+          <a href="#">联系我们</a>
+        </div>
+        <div class="footer-copy">2026 AI书法创作系统 · 基于GAN与风格解耦技术</div>
+      </div>
+    </footer>
+  </div>
+
+  <script src="assets/js/spring-animation.js"></script>
+  <script src="assets/js/calligraphy-renderer.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
